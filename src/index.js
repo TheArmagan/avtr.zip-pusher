@@ -74,7 +74,7 @@ async function main() {
     tray.setContextMenu(Menu.buildFromTemplate([
       {
         label: 'avtr.zip - Pusher',
-        sublabel: 'v0.0.1',
+        sublabel: 'v0.0.2',
         enabled: false
       },
       {
@@ -145,14 +145,19 @@ async function main() {
       amplitudeCachePath,
       logsPath
     ], {
-      ignoreInitial: true,
-      depth: 5
+      ignoreInitial: false,
+      depth: 5,
+      atomic: true,
+      awaitWriteFinish: {
+        pollInterval: 100,
+        stabilityThreshold: 500
+      }
     });
 
     watcher.on("all", async (event, path) => {
       if (event !== "add" && event !== "change") return;
 
-      lineReader.eachLine(path, { bufferSize: 1024 }, async (line, last, continueCb) => {
+      lineReader.eachLine(path, {}, async (line, last, continueCb) => {
         for (const match of line.matchAll(AvatarIdRegex)) {
           const avatarId = match[0];
           queue.add(async () => {
@@ -179,9 +184,9 @@ async function main() {
 
       if (req.ok) {
         console.log(`Successfully pushed avatar ${avatarId} to avtr.zip`);
+      } else {
+        console.error(`Failed to push avatar ${avatarId} to avtr.zip: ${req.statusText}`);
       }
-
-      await new Promise(resolve => setTimeout(resolve, 500));
     }
     throttledUpdateTrayMenu();
   }
