@@ -1,12 +1,79 @@
 {
   "type": "module",
   "name": "avtr.zip-pusher",
+  "main": "src/index.js",
+  "license": "GPL-3.0-only",
+  "version": "0.0.1",
   "dependencies": {
-    "electron": "^39.1.2",
+    "chokidar": "^4.0.3",
     "electron-squirrel-startup": "^1.0.1",
-    "lodash": "^4.17.21"
+    "line-reader": "^0.4.0",
+    "lodash": "^4.17.21",
+    "p-queue": "^9.0.0"
   },
   "devDependencies": {
-    "@types/lodash": "^4.17.20"
+    "electron": "^39.1.2",
+    "@types/lodash": "^4.17.20",
+    "@electron-forge/cli": "^7.4.0",
+    "@electron-forge/maker-squirrel": "^7.4.0",
+    "@electron/packager": "^19.0.1"
+  },
+  "scripts": {
+    "start": "electron-forge start",
+    "package": "electron-forge package",
+    "make": "electron-forge make"
+  },
+  "config": {
+    "forge": {
+      "packagerConfig": {
+        "icon": "src/icon",
+        "name": "avtr.zip-pusher",
+        "executableName": "avtr.zip-pusher",
+        "asar": true,
+        "prune": true,
+        "ignore": [
+          "/\\.git($|/)",
+          "/node_modules/\\.cache($|/)",
+          "/\\.vscode($|/)",
+          "/\\.github($|/)",
+          "/\\.gitignore$",
+          "/README\\.md$",
+          "/\\.eslintrc.*$",
+          "/\\.prettierrc.*$",
+          "/tsconfig\\.json$",
+          "/src/.*\\.ts$",
+          "/\\.env.*$",
+          "/docs($|/)",
+          "/test($|/)",
+          "/tests($|/)",
+          "/\\.nyc_output($|/)",
+          "/coverage($|/)",
+          "/\\*\\.log$",
+          "/\\.DS_Store$",
+          "/Thumbs\\.db$"
+        ],
+        "win32metadata": {
+          "CompanyName": "avtr.zip",
+          "FileDescription": "avtr.zip Avatar Pusher",
+          "ProductName": "avtr.zip Avatar Pusher"
+        }
+      },
+      "rebuildConfig": {},
+      "makers": [
+        {
+          "name": "@electron-forge/maker-squirrel",
+          "config": {
+            "name": "avtr.zip",
+            "authors": "TheArmagan",
+            "description": "avtr.zip Avatar Pusher",
+            "setupIcon": "src/icon.ico",
+            "loadingGif": "src/icon_256x256.png",
+            "noMsi": true
+          }
+        }
+      ],
+      "publishers": [],
+      "plugins": []
+    }
   }
 }

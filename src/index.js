@@ -1,8 +1,14 @@
-import { app, dialog, Tray, Menu } from 'electron';
+import { app, dialog, Tray, Menu, shell } from 'electron';
 import path from 'path';
+import process from 'process';
+import chokidar from 'chokidar';
+import lineReader from 'line-reader';
+import PQueue from 'p-queue';
 import fs from 'fs';
 import _ from 'lodash';
 import isSquirrelStartup from 'electron-squirrel-startup';
+
+const __dirname = path.dirname(new URL(import.meta.url).pathname).slice(1);
 
 if (isSquirrelStartup) app.quit();
 
@@ -15,16 +21,56 @@ if (process.defaultApp) {
 }
 app.setAppUserModelId("zip.avtr.pusher");
 
+const AvatarIdRegex = /avtr_\w{8}-\w{4}-\w{4}-\w{4}-\w{12}/g;
+
 /** @type {Tray} */
 let tray = null;
 
-let totalAvatarsPushed = 0;
+function addSeenAvatarId(id) {
+  const filePath = path.join(app.getPath('userData'), 'seenAvatars.txt');
+  let existingIds = getSeenAvatarIds();
+  if (!existingIds.has(id)) {
+    fs.appendFileSync(filePath, id + '\n');
+    return true;
+  }
+  return false;
+}
 
-async function createTray() {
-  tray = new Tray('./src/icon.png');
+function hasSeenAvatarId(id) {
+  const filePath = path.join(app.getPath('userData'), 'seenAvatars.txt');
+  if (fs.existsSync(filePath)) {
+    const data = fs.readFileSync(filePath, 'utf-8');
+    const existingIds = new Set(data.split('\n').map(line => line.trim()));
+    return existingIds.has(id);
+  }
+  return false;
+}
+
+function clearSeenAvatarIds() {
+  const filePath = path.join(app.getPath('userData'), 'seenAvatars.txt');
+  if (fs.existsSync(filePath)) {
+    fs.unlinkSync(filePath);
+  }
+}
+
+function getSeenAvatarIds() {
+  const filePath = path.join(app.getPath('userData'), 'seenAvatars.txt');
+  let existingIds = new Set();
+  if (fs.existsSync(filePath)) {
+    const data = fs.readFileSync(filePath, 'utf-8');
+    data.split('\n').forEach(line => {
+      existingIds.add(line.trim());
+    });
+  }
+  return existingIds;
+}
+
+async function main() {
+  tray = new Tray(path.join(__dirname, "icon.png"));
 
   function updateTrayMenu() {
-    tray.setToolTip(`avtr.zip - Pusher\nAvatars Pushed: ${totalAvatarsPushed}`);
+    const seenAvatarsSize = getSeenAvatarIds().size;
+    tray.setToolTip(`avtr.zip - Pusher\nSeen Avatars: ${seenAvatarsSize}`);
     tray.setContextMenu(Menu.buildFromTemplate([
       {
         label: 'avtr.zip - Pusher',
@@ -35,8 +81,43 @@ async function createTray() {
         type: 'separator'
       },
       {
-        label: `Avatars Pushed: ${totalAvatarsPushed}`,
+        label: `Seen Avatars: ${seenAvatarsSize}`,
         enabled: false
+      },
+      {
+        type: 'separator'
+      },
+      {
+        label: "Open Seen Avatars File",
+        click: () => {
+          const filePath = path.join(app.getPath('userData'), 'seenAvatars.txt');
+          if (fs.existsSync(filePath)) {
+            shell.openPath(filePath);
+          } else {
+            dialog.showMessageBoxSync({
+              type: 'info',
+              buttons: ['OK'],
+              title: 'Seen Avatars File Not Found',
+              message: 'The seen avatars file does not exist yet. It will be created when you encounter new avatars.'
+            });
+          }
+        }
+      },
+      {
+        label: 'Clear Seen Avatars',
+        click: () => {
+          const choice = dialog.showMessageBoxSync({
+            type: 'warning',
+            buttons: ['Cancel', 'Clear'],
+            defaultId: 0,
+            title: 'Clear Seen Avatars',
+            message: 'Are you sure you want to clear the list of seen avatars? This action cannot be undone.'
+          });
+          if (choice === 1) {
+            clearSeenAvatarIds();
+            throttledUpdateTrayMenu();
+          }
+        }
       },
       {
         type: 'separator'
@@ -52,12 +133,71 @@ async function createTray() {
 
   const throttledUpdateTrayMenu = _.throttle(updateTrayMenu, 1000);
   updateTrayMenu();
+
+  function createListeners() {
+    const amplitudeCachePath = path.join(process.env.APPDATA, "../VRChat/VRChat/amplitude.cache")
+
+    const logsPath = path.join(process.env.APPDATA, "../LocalLow/VRChat/VRChat");
+
+    const queue = new PQueue({ concurrency: 1 });
+
+    let watcher = chokidar.watch([
+      amplitudeCachePath,
+      logsPath
+    ], {
+      ignoreInitial: true,
+      depth: 5
+    });
+
+    watcher.on("all", async (event, path) => {
+      if (event !== "add" && event !== "change") return;
+
+      lineReader.eachLine(path, { bufferSize: 1024 }, async (line, last, continueCb) => {
+        for (const match of line.matchAll(AvatarIdRegex)) {
+          const avatarId = match[0];
+          queue.add(async () => {
+            await handleNewAvatar(avatarId);
+          });
+        }
+
+        continueCb?.();
+      });
+    });
+  }
+
+  async function handleNewAvatar(avatarId) {
+    if (addSeenAvatarId(avatarId)) {
+      console.log(`New avatar seen: ${avatarId}`);
+
+      const req = await fetch(`http://api.avtr.zip/v1/avatars/push`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({ avatarId })
+      });
+
+      if (req.ok) {
+        console.log(`Successfully pushed avatar ${avatarId} to avtr.zip`);
+      }
+
+      await new Promise(resolve => setTimeout(resolve, 500));
+    }
+    throttledUpdateTrayMenu();
+  }
+
+  createListeners();
+  console.log("avtr.zip - Pusher is running.");
+  console.log(`${getSeenAvatarIds().size} avatars have been seen so far.`);
+  console.log("Listening for new avatars...");
 }
+
+
 
 app.whenReady().then(async () => {
   if (!app.requestSingleInstanceLock()) {
     app.quit();
     return;
   }
-  createTray();
+  main();
 });
