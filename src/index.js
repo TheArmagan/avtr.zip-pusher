@@ -1,8 +1,7 @@
-import { app, dialog, Tray, Menu, shell } from 'electron';
+import { app, dialog, Tray, Menu, shell, Notification } from 'electron';
 import path from 'path';
 import process from 'process';
 import chokidar from 'chokidar';
-import lineReader from 'line-reader';
 import PQueue from 'p-queue';
 import fs from 'fs';
 import _ from 'lodash';
@@ -36,16 +35,6 @@ function addSeenAvatarId(id) {
   return false;
 }
 
-function hasSeenAvatarId(id) {
-  const filePath = path.join(app.getPath('userData'), 'seenAvatars.txt');
-  if (fs.existsSync(filePath)) {
-    const data = fs.readFileSync(filePath, 'utf-8');
-    const existingIds = new Set(data.split('\n').map(line => line.trim()));
-    return existingIds.has(id);
-  }
-  return false;
-}
-
 function clearSeenAvatarIds() {
   const filePath = path.join(app.getPath('userData'), 'seenAvatars.txt');
   if (fs.existsSync(filePath)) {
@@ -74,7 +63,7 @@ async function main() {
     tray.setContextMenu(Menu.buildFromTemplate([
       {
         label: 'avtr.zip - Pusher',
-        sublabel: 'v0.0.2',
+        sublabel: 'v0.0.3',
         enabled: false
       },
       {
@@ -135,38 +124,30 @@ async function main() {
   updateTrayMenu();
 
   function createListeners() {
-    const amplitudeCachePath = path.join(process.env.APPDATA, "../VRChat/VRChat/amplitude.cache")
+    const amplitudeCachePath = path.join(process.env.TEMP, "./VRChat/VRChat/amplitude.cache")
 
     const logsPath = path.join(process.env.APPDATA, "../LocalLow/VRChat/VRChat");
 
-    const queue = new PQueue({ concurrency: 1 });
+    const queue = new PQueue({ concurrency: 2 });
 
     let watcher = chokidar.watch([
       amplitudeCachePath,
       logsPath
     ], {
       ignoreInitial: false,
-      depth: 5,
-      atomic: true,
-      awaitWriteFinish: {
-        pollInterval: 100,
-        stabilityThreshold: 500
-      }
+      depth: 2
     });
 
     watcher.on("all", async (event, path) => {
       if (event !== "add" && event !== "change") return;
 
-      lineReader.eachLine(path, {}, async (line, last, continueCb) => {
-        for (const match of line.matchAll(AvatarIdRegex)) {
-          const avatarId = match[0];
-          queue.add(async () => {
-            await handleNewAvatar(avatarId);
-          });
-        }
-
-        continueCb?.();
-      });
+      const content = fs.readFileSync(path, 'utf-8');
+      for (const match of content.matchAll(AvatarIdRegex)) {
+        const avatarId = match[0];
+        queue.add(async () => {
+          await handleNewAvatar(avatarId);
+        });
+      }
     });
   }
 
@@ -195,9 +176,27 @@ async function main() {
   console.log("avtr.zip - Pusher is running.");
   console.log(`${getSeenAvatarIds().size} avatars have been seen so far.`);
   console.log("Listening for new avatars...");
+
+  new Notification({
+    title: 'avtr.zip - Pusher',
+    body: 'The application is now running in the system tray.'
+  }).show();
+
+  app.on('second-instance', (event, argv) => {
+    let deepLink = argv.pop();
+    if (deepLink && deepLink.startsWith("azp://")) {
+      deepLink = deepLink.replace("azp://", "");
+      if (deepLink.startsWith("/")) deepLink = deepLink.slice(1);
+      if (deepLink.endsWith("/")) deepLink = deepLink.slice(0, -1);
+      const splited = deepLink.split("/");
+      if (splited[0] === "push" && AvatarIdRegex.test(splited[1] || "")) {
+        const avatarId = splited[1];
+        handleNewAvatar(avatarId);
+        console.log(`Received deep link to push avatar: ${avatarId}`);
+      }
+    }
+  });
 }
-
-
 
 app.whenReady().then(async () => {
   if (!app.requestSingleInstanceLock()) {
