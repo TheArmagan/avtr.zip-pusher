@@ -1,0 +1,12 @@
+{
+  "type": "module",
+  "name": "avtr.zip-pusher",
+  "dependencies": {
+    "electron": "^39.1.2",
+    "electron-squirrel-startup": "^1.0.1",
+    "lodash": "^4.17.21"
+  },
+  "devDependencies": {
+    "@types/lodash": "^4.17.20"
+  }
+}
