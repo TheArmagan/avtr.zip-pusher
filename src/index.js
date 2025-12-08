@@ -4,8 +4,10 @@ import process from 'process';
 import chokidar from 'chokidar';
 import PQueue from 'p-queue';
 import fs from 'fs';
+import { promises as fsPromises } from 'fs';
 import _ from 'lodash';
 import isSquirrelStartup from 'electron-squirrel-startup';
+import Tail from 'tail';
 
 const __dirname = path.dirname(new URL(import.meta.url).pathname).slice(1);
 
@@ -21,19 +23,10 @@ if (process.defaultApp) {
 app.setAppUserModelId("zip.avtr.pusher");
 
 const AvatarIdRegex = /avtr_\w{8}-\w{4}-\w{4}-\w{4}-\w{12}/g;
+const LogFileRegex = /^output_log_(\d{4})-(\d{2})-(\d{2})_(\d{2})-(\d{2})-(\d{2})\.txt$/;
 
 /** @type {Tray} */
 let tray = null;
-
-function addSeenAvatarId(id) {
-  const filePath = path.join(app.getPath('userData'), 'seenAvatars.txt');
-  let existingIds = getSeenAvatarIds();
-  if (!existingIds.has(id)) {
-    fs.appendFileSync(filePath, id + '\n');
-    return true;
-  }
-  return false;
-}
 
 function clearSeenAvatarIds() {
   const filePath = path.join(app.getPath('userData'), 'seenAvatars.txt');
@@ -54,16 +47,62 @@ function getSeenAvatarIds() {
   return existingIds;
 }
 
+/**
+ * Parse log filename and return Date object
+ * Format: output_log_YYYY-MM-DD_HH-MM-SS.txt
+ */
+function parseLogFileDate(filename) {
+  const match = filename.match(LogFileRegex);
+  if (!match) return null;
+  const [, year, month, day, hour, minute, second] = match;
+  return new Date(
+    parseInt(year),
+    parseInt(month) - 1,
+    parseInt(day),
+    parseInt(hour),
+    parseInt(minute),
+    parseInt(second)
+  );
+}
+
+/**
+ * Find the latest log file in the VRChat logs directory
+ */
+async function findLatestLogFile(logsPath) {
+  try {
+    const files = await fsPromises.readdir(logsPath);
+    let latestFile = null;
+    let latestDate = null;
+
+    for (const file of files) {
+      const date = parseLogFileDate(file);
+      if (date && (!latestDate || date > latestDate)) {
+        latestDate = date;
+        latestFile = file;
+      }
+    }
+
+    return latestFile ? path.join(logsPath, latestFile) : null;
+  } catch (err) {
+    console.error('Error finding latest log file:', err);
+    return null;
+  }
+}
+
 async function main() {
   tray = new Tray(path.join(__dirname, "icon.png"));
 
+  // Cache seen avatar IDs in memory to avoid file I/O on every check
+  let seenAvatarIdsCache = getSeenAvatarIds();
+
   function updateTrayMenu() {
-    const seenAvatarsSize = getSeenAvatarIds().size;
+    const seenAvatarsSize = seenAvatarIdsCache.size;
+    const loginItemSettings = app.getLoginItemSettings();
     tray.setToolTip(`avtr.zip - Pusher\nSeen Avatars: ${seenAvatarsSize}`);
     tray.setContextMenu(Menu.buildFromTemplate([
       {
         label: 'avtr.zip - Pusher',
-        sublabel: 'v0.0.3',
+        sublabel: 'v0.0.4',
         enabled: false
       },
       {
@@ -72,6 +111,22 @@ async function main() {
       {
         label: `Seen Avatars: ${seenAvatarsSize}`,
         enabled: false
+      },
+      {
+        type: 'separator'
+      },
+      {
+        label: 'Run at startup',
+        type: 'checkbox',
+        checked: loginItemSettings.openAtLogin,
+        click: () => {
+          const newValue = !loginItemSettings.openAtLogin;
+          app.setLoginItemSettings({
+            openAtLogin: newValue,
+            path: process.execPath
+          });
+          throttledUpdateTrayMenu();
+        }
       },
       {
         type: 'separator'
@@ -104,6 +159,7 @@ async function main() {
           });
           if (choice === 1) {
             clearSeenAvatarIds();
+            seenAvatarIdsCache = new Set();
             throttledUpdateTrayMenu();
           }
         }
@@ -123,37 +179,23 @@ async function main() {
   const throttledUpdateTrayMenu = _.throttle(updateTrayMenu, 1000);
   updateTrayMenu();
 
-  function createListeners() {
-    const amplitudeCachePath = path.join(process.env.TEMP, "./VRChat/VRChat/amplitude.cache")
+  /** @type {Tail.Tail | null} */
+  let currentLogTail = null;
+  /** @type {string | null} */
+  let currentLogFile = null;
 
-    const logsPath = path.join(process.env.APPDATA, "../LocalLow/VRChat/VRChat");
-
-    const queue = new PQueue({ concurrency: 2 });
-
-    let watcher = chokidar.watch([
-      amplitudeCachePath,
-      logsPath
-    ], {
-      ignoreInitial: false,
-      depth: 2
-    });
-
-    watcher.on("all", async (event, path) => {
-      if (event !== "add" && event !== "change") return;
-
-      const content = fs.readFileSync(path, 'utf-8');
-      for (const match of content.matchAll(AvatarIdRegex)) {
-        const avatarId = match[0];
-        queue.add(async () => {
-          await handleNewAvatar(avatarId);
-        });
-      }
-    });
-  }
+  const queue = new PQueue({ concurrency: 4 });
 
   async function handleNewAvatar(avatarId) {
-    if (addSeenAvatarId(avatarId)) {
-      console.log(`New avatar seen: ${avatarId}`);
+    if (seenAvatarIdsCache.has(avatarId)) return;
+
+    seenAvatarIdsCache.add(avatarId);
+    console.log(`New avatar seen: ${avatarId}`);
+
+    try {
+      // Write to file async
+      const filePath = path.join(app.getPath('userData'), 'seenAvatars.txt');
+      await fsPromises.appendFile(filePath, avatarId + '\n');
 
       const req = await fetch(`http://api.avtr.zip/v1/avatars/push`, {
         method: 'POST',
@@ -168,18 +210,118 @@ async function main() {
       } else {
         console.error(`Failed to push avatar ${avatarId} to avtr.zip: ${req.statusText}`);
       }
+    } catch (err) {
+      console.error(`Error handling avatar ${avatarId}:`, err);
     }
+
     throttledUpdateTrayMenu();
   }
 
-  createListeners();
+  function processLine(line) {
+    for (const match of line.matchAll(AvatarIdRegex)) {
+      const avatarId = match[0];
+      if (!seenAvatarIdsCache.has(avatarId)) {
+        queue.add(() => handleNewAvatar(avatarId));
+      }
+    }
+  }
+
+  async function startTailing(logFilePath) {
+    if (currentLogTail) {
+      currentLogTail.unwatch();
+      currentLogTail = null;
+    }
+
+    currentLogFile = logFilePath;
+    console.log(`Starting to tail log file: ${logFilePath}`);
+
+    // First, do an initial scan of the file for any existing avatar IDs
+    try {
+      const content = await fsPromises.readFile(logFilePath, 'utf-8');
+      const lines = content.split('\n');
+      for (const line of lines) {
+        processLine(line);
+      }
+    } catch (err) {
+      console.error('Error reading initial log content:', err);
+    }
+
+    // Now start tailing for new content
+    currentLogTail = new Tail.Tail(logFilePath, {
+      follow: true,
+      fromBeginning: false,
+      useWatchFile: true,
+      fsWatchOptions: { interval: 100 }
+    });
+
+    currentLogTail.on('line', (line) => {
+      processLine(line);
+    });
+
+    currentLogTail.on('error', (err) => {
+      console.error('Tail error:', err);
+    });
+  }
+
+  async function createListeners() {
+    const amplitudeCachePath = path.join(process.env.TEMP, "./VRChat/VRChat/amplitude.cache");
+    const logsPath = path.join(process.env.APPDATA, "../LocalLow/VRChat/VRChat");
+
+    // Find and tail the latest log file
+    const latestLogFile = await findLatestLogFile(logsPath);
+    if (latestLogFile) {
+      await startTailing(latestLogFile);
+    } else {
+      console.log('No log file found yet, waiting for one to be created...');
+    }
+
+    // Watch the logs directory for new log files
+    const dirWatcher = chokidar.watch(logsPath, {
+      ignoreInitial: true,
+      depth: 0,
+      ignored: (filePath) => {
+        const basename = path.basename(filePath);
+        return !LogFileRegex.test(basename) && basename !== path.basename(logsPath);
+      }
+    });
+
+    dirWatcher.on('add', async (filePath) => {
+      const basename = path.basename(filePath);
+      if (LogFileRegex.test(basename)) {
+        console.log(`New log file detected: ${filePath}`);
+        // Give VRChat a moment to finish creating the file
+        await new Promise(resolve => setTimeout(resolve, 500));
+        await startTailing(filePath);
+      }
+    });
+
+    // Also watch amplitude.cache with chokidar (it's small and changes infrequently)
+    const amplitudeWatcher = chokidar.watch(amplitudeCachePath, {
+      ignoreInitial: false,
+      depth: 0
+    });
+
+    amplitudeWatcher.on('all', async (event, filePath) => {
+      if (event !== 'add' && event !== 'change') return;
+      try {
+        const content = await fsPromises.readFile(filePath, 'utf-8');
+        for (const line of content.split('\n')) {
+          processLine(line);
+        }
+      } catch (err) {
+        // File might not exist yet
+      }
+    });
+  }
+
+  await createListeners();
   console.log("avtr.zip - Pusher is running.");
-  console.log(`${getSeenAvatarIds().size} avatars have been seen so far.`);
+  console.log(`${seenAvatarIdsCache.size} avatars have been seen so far.`);
   console.log("Listening for new avatars...");
 
   new Notification({
     title: 'avtr.zip - Pusher',
-    body: 'The application is now running in the system tray.'
+    body: `The application is now running in the system tray. Seen Avatars: ${seenAvatarIdsCache.size}`
   }).show();
 
   app.on('second-instance', (event, argv) => {
