@@ -3,12 +3,11 @@
   "name": "avtr.zip-pusher",
   "main": "src/index.js",
   "license": "GPL-3.0-only",
-  "version": "0.0.4",
+  "version": "0.1.0",
   "dependencies": {
     "chokidar": "^4.0.3",
     "electron-squirrel-startup": "^1.0.1",
     "lodash": "^4.17.21",
-    "p-queue": "^9.0.0",
     "tail": "^2.2.6"
   },
   "devDependencies": {
@@ -75,5 +74,10 @@
       "publishers": [],
       "plugins": []
     }
+  },
+  "description": "Tray app that pushes the VRChat avatars you see to avtr.zip",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/TheArmagan/avtr.zip-pusher.git"
   }
 }

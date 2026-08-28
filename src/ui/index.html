@@ -1,0 +1,193 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta http-equiv="Content-Security-Policy"
+        content="default-src 'none'; script-src 'self'; style-src 'self' https://fonts.googleapis.com; font-src https://fonts.gstatic.com; img-src 'self' data:;" />
+  <title>avtr.zip Pusher</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link rel="stylesheet"
+        href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,400;9..144,500;9..144,600;9..144,700&family=Inter:wght@400;500;600&display=swap" />
+  <link rel="stylesheet" href="style.css" />
+</head>
+<body>
+  <div id="app">
+    <header class="header">
+      <img class="logo" id="logo" alt="" />
+      <span class="wordmark">avtr<span class="tld">.zip</span></span>
+      <span class="spacer"></span>
+      <span class="live" id="live" title="VRChat activity">
+        <span class="dot" id="live-dot"></span>
+        <span id="live-text">idle</span>
+      </span>
+      <button class="icon-btn" id="open-settings" title="Settings" aria-label="Settings">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"
+             stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+          <circle cx="12" cy="12" r="3" />
+          <path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 1 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06A1.65 1.65 0 0 0 4.6 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 1 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 9 4.6a1.65 1.65 0 0 0 1-1.51V3a2 2 0 1 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9c.14.35.4.64.73.83.31.17.66.25 1.01.24H21a2 2 0 1 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z" />
+        </svg>
+      </button>
+    </header>
+
+    <!-- ============ linked view ============ -->
+    <main class="body" id="view-main">
+      <div class="banner" id="banner" hidden></div>
+
+      <section class="card identity" id="identity-card">
+        <div class="who">
+          <div class="label">Pushing as</div>
+          <div class="name" id="display-name">Anonymous</div>
+          <span class="chip" id="rank-chip" hidden></span>
+        </div>
+        <div class="credit">
+          <div class="label">Credit</div>
+          <div class="n" id="credit-total">0</div>
+        </div>
+      </section>
+
+      <section class="card">
+        <div class="label" style="margin-bottom: 10px;">This session</div>
+        <div class="stats">
+          <div class="stat"><div class="n" id="stat-seen">0</div><div class="k">Seen</div></div>
+          <div class="stat"><div class="n" id="stat-pushed">0</div><div class="k">Pushed</div></div>
+          <div class="stat"><div class="n" id="stat-credited">0</div><div class="k">Credited</div></div>
+          <div class="stat"><div class="n" id="stat-quota">-</div><div class="k">Quota left</div></div>
+        </div>
+      </section>
+
+      <section>
+        <div class="section-head">
+          <h2>Live activity</h2>
+          <span class="label" id="pending-label"></span>
+        </div>
+        <div class="card">
+          <div class="rows" id="activity"></div>
+          <div class="empty" id="activity-empty">Nothing pushed yet. Launch VRChat and look around.</div>
+        </div>
+      </section>
+
+      <section>
+        <div class="section-head">
+          <h2>Leaderboard</h2>
+          <button class="link-out" id="open-leaderboard">See all -&gt;</button>
+        </div>
+        <div class="card" style="padding: 6px;">
+          <div id="leaderboard"></div>
+          <div class="empty" id="leaderboard-empty">Loading...</div>
+        </div>
+      </section>
+    </main>
+
+    <!-- ============ link / anonymous view ============ -->
+    <main class="body hidden" id="view-link">
+      <div class="banner" id="banner-link" hidden></div>
+
+      <div id="link-intro">
+        <div class="hero">
+          <h1>Push as yourself.</h1>
+          <p>You are pushing anonymously right now. That works, and always will. Linking a VRChat
+             account earns you credit for what you find.</p>
+        </div>
+        <div class="perks">
+          <div class="perk">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12" /></svg>
+            <span><b>Ten times the allowance.</b> 500 avatars per request instead of 50.</span>
+          </div>
+          <div class="perk">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12" /></svg>
+            <span><b>Discovery credit.</b> Your finds count on the public leaderboard.</span>
+          </div>
+          <div class="perk">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12" /></svg>
+            <span><b>Recognised in-world.</b> The screens inside VRChat can tell you apart from
+              everyone else on your connection.</span>
+          </div>
+        </div>
+        <button class="btn accent" id="start-link" style="width: 100%;">
+          Link account
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="5" y1="12" x2="19" y2="12" /><polyline points="12 5 19 12 12 19" /></svg>
+        </button>
+      </div>
+
+      <div id="link-session" class="hidden">
+        <div class="card code-box">
+          <div class="label">Type this at avtr.zip</div>
+          <div class="code" id="user-code">-</div>
+          <div class="link-actions">
+            <button class="btn" id="copy-code">Copy</button>
+            <button class="btn" id="reopen-url">Open page</button>
+          </div>
+          <div class="countdown"><i id="countdown-bar" style="width: 100%;"></i></div>
+          <div class="label" id="countdown-text">10:00 left</div>
+        </div>
+
+        <p class="verify-note" style="margin-top: 12px;">
+          Check this code matches the one your browser shows before you confirm. It is the
+          cheapest way to be sure you are completing your own session.
+        </p>
+
+        <div class="status-line" id="link-status">Waiting for you to open the page...</div>
+
+        <div class="link-actions" style="justify-content: flex-start;">
+          <button class="btn" id="cancel-link">Cancel</button>
+          <button class="btn hidden" id="retry-link">Try again</button>
+        </div>
+      </div>
+
+      <p class="muted" style="font-size: 11px; margin-top: 4px;">
+        Avatars keep being pushed anonymously in the meantime.
+      </p>
+    </main>
+
+    <footer class="footer">
+      <button class="btn accent" id="push-now">Push now</button>
+      <button class="btn" id="force-push" title="Ignores the 15 minute refresh skip. Costs upstream budget.">Force</button>
+      <span class="spacer"></span>
+      <span class="hb" id="heartbeat">&nbsp;</span>
+    </footer>
+
+    <!-- ============ settings sheet ============ -->
+    <div class="sheet hidden" id="sheet">
+      <header class="header">
+        <button class="icon-btn" id="close-settings" aria-label="Back">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="19" y1="12" x2="5" y2="12" /><polyline points="12 19 5 12 12 5" /></svg>
+        </button>
+        <span class="wordmark">Settings</span>
+        <span class="spacer"></span>
+        <span class="label" id="version-label"></span>
+      </header>
+      <div class="body">
+        <div class="opt">
+          <span class="t">Run at startup<small>Start with Windows, minimised to the tray</small></span>
+          <button class="switch" id="opt-startup" role="switch" aria-checked="false" aria-label="Run at startup"></button>
+        </div>
+        <div class="opt">
+          <span class="t">Notifications<small>Tell me about updates and link results</small></span>
+          <button class="switch" id="opt-notifications" role="switch" aria-checked="false" aria-label="Notifications"></button>
+        </div>
+        <div class="opt">
+          <span class="t">Confirm force pushes<small>Ask before spending upstream budget</small></span>
+          <button class="switch" id="opt-confirm-force" role="switch" aria-checked="false" aria-label="Confirm force pushes"></button>
+        </div>
+        <div class="opt">
+          <span class="t">Open the panel on launch</span>
+          <button class="switch" id="opt-panel-launch" role="switch" aria-checked="false" aria-label="Open the panel on launch"></button>
+        </div>
+        <div class="opt" id="opt-optout-row">
+          <span class="t">Hide me from the leaderboard<small>Keeps your rank, hides the row</small></span>
+          <button class="switch" id="opt-optout" role="switch" aria-checked="false" aria-label="Hide me from the leaderboard"></button>
+        </div>
+
+        <div style="height: 10px;"></div>
+        <button class="text-btn" id="btn-check-updates">Check for updates</button>
+        <button class="text-btn" id="btn-open-log">Open log file</button>
+        <button class="text-btn danger hidden" id="btn-sign-out">Sign out and revoke this device</button>
+        <button class="text-btn danger" id="btn-quit">Quit avtr.zip Pusher</button>
+      </div>
+    </div>
+  </div>
+
+  <script src="app.js"></script>
+</body>
+</html>
