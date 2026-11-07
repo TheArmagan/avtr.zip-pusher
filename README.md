@@ -99,9 +99,6 @@ src/core/         API client, linking, token storage, push batching, heartbeat, 
 src/ui/           the panel
 ```
 
-`pusher-desktop-protocol.md` documents linking, pushing and the heartbeat;
-`pusher-app-stats-api.md` documents the stats, leaderboard and reward endpoints.
-
 ## Licence
 
 GPL-3.0-only.
