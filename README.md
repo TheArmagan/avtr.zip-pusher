@@ -3,8 +3,22 @@
 A Windows tray app that watches your VRChat logs for avatar ids and sends them to
 [avtr.zip](https://avtr.zip), so avatars you run into get indexed and become searchable.
 
-Left-clicking the tray icon opens a panel showing what has been pushed, your discovery
-credit and rank, the leaderboard, and whether the heartbeat is running.
+Left-clicking the tray icon opens a panel with four tabs:
+
+- **Home**: what has been pushed this session, your total pushed and discoveries, your
+  weekly, monthly and all-time rank with how far you are from the next place, your
+  discovery streak, milestone badges, likes your finds have earned, and the weekly
+  reward if you hold it
+- **Boards**: the weekly, monthly and all-time leaderboards, or just the people around you
+- **Collected**: the avatars you were the first to find
+- **Hall of fame**: every past week's top 3
+
+The top 3 discoverers of each week (Monday to Monday, UTC) get VIP and the
+`~ top contributor ~` flair in the avtr.zip VRChat world for the following week. Hiding
+yourself from the leaderboard also makes you ineligible for it.
+
+The dashboard refreshes once a minute while the panel is open and not at all while it is
+hidden.
 
 ## Install
 
@@ -85,7 +99,8 @@ src/core/         API client, linking, token storage, push batching, heartbeat, 
 src/ui/           the panel
 ```
 
-`pusher-desktop-protocol.md` documents the API this talks to.
+`pusher-desktop-protocol.md` documents linking, pushing and the heartbeat;
+`pusher-app-stats-api.md` documents the stats, leaderboard and reward endpoints.
 
 ## Licence
 

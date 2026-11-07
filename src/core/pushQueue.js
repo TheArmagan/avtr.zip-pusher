@@ -14,9 +14,15 @@ let flushing = false;
 let pausedUntil = 0;
 let backoffMs = 1000;
 let onUnauthorized = () => {};
+let onCredit = () => {};
 
 export function setUnauthorizedHandler(handler) {
   onUnauthorized = handler;
+}
+
+/** Called with (credit, previousTotal) after every authed push that returned credit. */
+export function setCreditHandler(handler) {
+  onCredit = handler;
 }
 
 function maxIds() {
@@ -84,7 +90,13 @@ async function flushAuthed(ids, force, explicit) {
 
   recordResults(res.results);
   if (res.quota) patch({ quota: res.quota });
-  if (res.credit) patchIn('identity', { credit: res.credit.total, rank: res.credit.rank });
+  if (res.credit) {
+    const prev = getState().identity?.credit;
+    const next = { credit: res.credit.total, rank: res.credit.rank };
+    if (typeof res.credit.pushCount === 'number') next.pushCount = res.credit.pushCount;
+    patchIn('identity', next);
+    onCredit(res.credit, prev);
+  }
   if (!explicit) await seen.commit(ids);
 
   // The server returns quota so we do not have to find the limit by hitting it.

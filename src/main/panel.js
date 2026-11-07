@@ -4,7 +4,7 @@ import { logger } from './logger.js';
 import { getState, events } from './state.js';
 
 const WIDTH = 380;
-const HEIGHT = 600;
+const HEIGHT = 620;
 const GAP = 8;
 
 /** @type {BrowserWindow | null} */
@@ -12,6 +12,24 @@ let win = null;
 let quitting = false;
 /** Set from the renderer while a sheet is open, so a focus change does not eat it. */
 let holdOpen = false;
+
+const visibilityListeners = new Set();
+
+/** Stats polling only runs while the panel is on screen; this is how it finds out. */
+export function onVisibilityChange(listener) {
+  visibilityListeners.add(listener);
+  return () => visibilityListeners.delete(listener);
+}
+
+function notifyVisibility(visible) {
+  for (const listener of visibilityListeners) {
+    try {
+      listener(visible);
+    } catch (err) {
+      logger.warn('panel: visibility listener failed', err);
+    }
+  }
+}
 
 export function setHoldOpen(value) {
   holdOpen = !!value;
@@ -116,6 +134,7 @@ export function show(trayBounds) {
   position(trayBounds);
   w.show();
   w.focus();
+  notifyVisibility(true);
 }
 
 export function hide() {
@@ -123,6 +142,7 @@ export function hide() {
   win.hide();
   // Reopening should land on the panel, never on whatever sheet was left open.
   win.webContents.send('hidden');
+  notifyVisibility(false);
 }
 
 export function toggle(trayBounds) {

@@ -3,7 +3,7 @@
 <head>
   <meta charset="utf-8" />
   <meta http-equiv="Content-Security-Policy"
-        content="default-src 'none'; script-src 'self'; style-src 'self' https://fonts.googleapis.com; font-src https://fonts.gstatic.com; img-src 'self' data:;" />
+        content="default-src 'none'; script-src 'self'; style-src 'self' https://fonts.googleapis.com; font-src https://fonts.gstatic.com; img-src 'self' data: https:;" />
   <title>avtr.zip Pusher</title>
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
@@ -30,20 +30,62 @@
       </button>
     </header>
 
+    <nav class="tabs" id="tabs" role="tablist">
+      <button class="tab on" data-tab="home" role="tab">Home</button>
+      <button class="tab" data-tab="boards" role="tab">Boards</button>
+      <button class="tab" data-tab="collected" role="tab" id="tab-collected">Collected</button>
+      <button class="tab" data-tab="fame" role="tab">Hall of fame</button>
+    </nav>
+
     <!-- ============ linked view ============ -->
     <main class="body" id="view-main">
       <div class="banner" id="banner" hidden></div>
+      <div class="banner gold" id="celebrate" hidden></div>
 
       <section class="card identity" id="identity-card">
         <div class="who">
           <div class="label">Pushing as</div>
           <div class="name" id="display-name">Anonymous</div>
-          <span class="chip" id="rank-chip" hidden></span>
+          <div class="chips">
+            <span class="chip accent" id="rank-chip" hidden></span>
+            <span class="chip gold" id="reward-chip" hidden>VIP</span>
+          </div>
         </div>
         <div class="credit">
-          <div class="label">Credit</div>
+          <div class="label">Discoveries</div>
           <div class="n" id="credit-total">0</div>
         </div>
+      </section>
+
+      <section class="card reward" id="reward-card" hidden>
+        <div class="reward-title">VIP and <span class="flair">~ top contributor ~</span></div>
+        <div class="reward-sub" id="reward-sub"></div>
+      </section>
+
+      <section class="card">
+        <div class="stats">
+          <div class="stat"><div class="n" id="stat-push-total">-</div><div class="k">Total pushed</div></div>
+          <div class="stat"><div class="n" id="stat-streak">-</div><div class="k" id="stat-streak-k">Day streak</div></div>
+          <div class="stat"><div class="n" id="stat-likes">-</div><div class="k">Likes earned</div></div>
+          <div class="stat"><div class="n" id="stat-share">-</div><div class="k">Of this week</div></div>
+        </div>
+      </section>
+
+      <div class="banner warn" id="streak-warn" hidden></div>
+
+      <section class="card ranks" id="ranks-card">
+        <div class="rank-row" id="rank-week"></div>
+        <div class="rank-row" id="rank-month"></div>
+        <div class="rank-row" id="rank-all"></div>
+      </section>
+
+      <section class="card" id="milestone-card">
+        <div class="ms-head">
+          <span id="ms-text">Next badge</span>
+          <span class="ms-pct" id="ms-pct"></span>
+        </div>
+        <div class="bar"><i id="ms-bar" style="width: 0%;"></i></div>
+        <div class="badges" id="ms-badges"></div>
       </section>
 
       <section class="card">
@@ -66,17 +108,52 @@
           <div class="empty" id="activity-empty">Nothing pushed yet. Launch VRChat and look around.</div>
         </div>
       </section>
+    </main>
 
-      <section>
-        <div class="section-head">
-          <h2>Leaderboard</h2>
-          <button class="link-out" id="open-leaderboard">See all -&gt;</button>
+    <!-- ============ leaderboards ============ -->
+    <main class="body hidden" id="view-boards">
+      <div class="seg" id="board-period">
+        <button data-period="week" class="on">This week</button>
+        <button data-period="month">This month</button>
+        <button data-period="all">All time</button>
+      </div>
+      <div class="board-bar">
+        <span class="board-note" id="board-note"></span>
+        <div class="seg small" id="board-mode">
+          <button data-mode="top" class="on">Top</button>
+          <button data-mode="near">Near me</button>
         </div>
-        <div class="card" style="padding: 6px;">
-          <div id="leaderboard"></div>
-          <div class="empty" id="leaderboard-empty">Loading...</div>
-        </div>
-      </section>
+      </div>
+      <p class="note reward-note" id="board-reward" hidden>Top 3 this week get VIP and the
+        <span class="flair">~ top contributor ~</span> flair in the avtr.zip world all next week.</p>
+      <div class="card list-card">
+        <div id="board-list"></div>
+        <div class="empty" id="board-empty">Loading...</div>
+      </div>
+      <div class="pinned" id="board-me" hidden></div>
+    </main>
+
+    <!-- ============ collected ============ -->
+    <main class="body hidden" id="view-collected">
+      <div class="section-head">
+        <h2>Collected</h2>
+        <span class="label" id="collected-count"></span>
+      </div>
+      <p class="note">Avatars you were the first to find, newest first.</p>
+      <div class="grid" id="collected-grid"></div>
+      <div class="empty" id="collected-empty">Loading...</div>
+    </main>
+
+    <!-- ============ hall of fame ============ -->
+    <main class="body hidden" id="view-fame">
+      <div class="section-head">
+        <h2>Hall of fame</h2>
+      </div>
+      <p class="note">The top 3 discoverers of each week get VIP and the
+        <span class="flair">~ top contributor ~</span> flair in the avtr.zip world for the whole
+        following week.</p>
+      <div id="fame-list"></div>
+      <div class="empty" id="fame-empty">Loading...</div>
     </main>
 
     <!-- ============ link / anonymous view ============ -->
@@ -96,7 +173,13 @@
           </div>
           <div class="perk">
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12" /></svg>
-            <span><b>Discovery credit.</b> Your finds count on the public leaderboard.</span>
+            <span><b>Discovery credit.</b> Your finds count on the weekly, monthly and all-time
+              boards.</span>
+          </div>
+          <div class="perk">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12" /></svg>
+            <span><b>Weekly rewards.</b> The top 3 each week get VIP and the
+              <span class="flair">~ top contributor ~</span> flair in the avtr.zip world.</span>
           </div>
           <div class="perk">
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12" /></svg>
@@ -175,7 +258,8 @@
           <button class="switch" id="opt-panel-launch" role="switch" aria-checked="false" aria-label="Open the panel on launch"></button>
         </div>
         <div class="opt" id="opt-optout-row">
-          <span class="t">Hide me from the leaderboard<small>Keeps your rank, hides the row</small></span>
+          <span class="t">Hide me from the leaderboard<small>Keeps your rank, hides your name. Opting out also
+            makes you ineligible for the weekly top 3 reward.</small></span>
           <button class="switch" id="opt-optout" role="switch" aria-checked="false" aria-label="Hide me from the leaderboard"></button>
         </div>
 

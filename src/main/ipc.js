@@ -10,6 +10,8 @@ import * as api from '../core/api.js';
 import * as tokenStore from '../core/tokenStore.js';
 import * as linkFlow from '../core/linkFlow.js';
 import * as pushQueue from '../core/pushQueue.js';
+import * as stats from '../core/stats.js';
+import { AvatarIdTestRegex } from '../core/watchers.js';
 import { checkForUpdates } from './updater.js';
 
 export function register({ refreshAccount }) {
@@ -82,7 +84,8 @@ export function register({ refreshAccount }) {
       }
     }
     tokenStore.clear();
-    patch({ mode: 'anonymous', identity: null, quota: null });
+    stats.invalidate();
+    patch({ mode: 'anonymous', identity: null, quota: null, stats: null });
     setError(null);
     tray.refresh();
     return true;
@@ -90,6 +93,24 @@ export function register({ refreshAccount }) {
   handle('account:setLeaderboardOptOut', async (value) => {
     await api.patchMe({ leaderboardOptOut: !!value });
     patchIn('identity', { leaderboardOptOut: !!value });
+    // Boards and neighbour lists now show the wrong name for this row.
+    stats.invalidate();
+    // Opting out also forfeits the weekly reward, so /me changes too.
+    void refreshAccount();
+    return true;
+  });
+
+  handle('stats:leaderboard', (period, cursor) => stats.leaderboardPage(period, cursor || undefined));
+  handle('stats:neighbors', (period) => stats.neighbors(period));
+  handle('stats:discoveries', (cursor) => stats.discoveriesPage(cursor || undefined));
+  handle('stats:awards', (cursor) => stats.awardsPage(cursor || undefined));
+  handle('stats:profile', (vrchatUserId) => {
+    // Legacy VRChat ids are not usr_ uuids, so only bound the shape; it is URL-encoded anyway.
+    if (!/^[\w-]{1,64}$/.test(String(vrchatUserId))) throw new Error('Not a VRChat user id');
+    return stats.profile(vrchatUserId);
+  });
+  handle('stats:clearCelebration', () => {
+    patch({ celebration: null });
     return true;
   });
 
@@ -110,6 +131,10 @@ export function register({ refreshAccount }) {
   handle('app:openExternal', (url) => {
     if (!/^https?:\/\//i.test(String(url))) return false;
     return shell.openExternal(url);
+  });
+  handle('app:openAvatar', (avatarId) => {
+    if (!AvatarIdTestRegex.test(String(avatarId))) return false;
+    return shell.openExternal(`${api.BASE_URL}/avatars/${avatarId}`);
   });
   handle('app:openLogFile', () => shell.openPath(files.logFile()));
   handle('app:checkForUpdates', () => checkForUpdates({ manual: true }));

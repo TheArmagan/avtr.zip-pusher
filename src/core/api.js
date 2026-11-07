@@ -70,7 +70,10 @@ async function request(method, path, { body, auth = false, timeoutMs = 20000 } =
 
   if (!res.ok) {
     const code = payload?.code || payload?.refusal || `http_${res.status}`;
-    throw new ApiError(res.status, code, payload?.message, parseRetryAfter(res));
+    // Errors carry their human text in `error`; older endpoints used `message`.
+    const message = payload?.message || (typeof payload?.error === 'string' ? payload.error : undefined);
+    const retryAfter = parseRetryAfter(res) ?? (Number.isFinite(payload?.retryAfterSeconds) ? payload.retryAfterSeconds : null);
+    throw new ApiError(res.status, code, message, retryAfter);
   }
 
   return payload;
@@ -155,13 +158,35 @@ export function revokeToken(tokenId) {
   return request('DELETE', `/v3/pusher/tokens/${encodeURIComponent(tokenId)}`, { auth: true });
 }
 
+/* ---- stats (personal) ---------------------------------------------------- */
+
+export const PERIODS = ['all', 'week', 'month'];
+
+function query(params) {
+  const qs = new URLSearchParams();
+  for (const [k, v] of Object.entries(params)) {
+    if (v !== undefined && v !== null && v !== '') qs.set(k, String(v));
+  }
+  const str = qs.toString();
+  return str ? `?${str}` : '';
+}
+
+export function neighbors({ period = 'all', span = 3 } = {}) {
+  return request('GET', `/v3/pusher/me/neighbors${query({ period, span })}`, { auth: true });
+}
+
+export function myDiscoveries({ cursor, limit = 30 } = {}) {
+  return request('GET', `/v3/pusher/me/discoveries${query({ cursor, limit })}`, { auth: true });
+}
+
 /* ---- public ------------------------------------------------------------- */
 
-export function leaderboard({ cursor, limit = 5 } = {}) {
-  const qs = new URLSearchParams();
-  if (cursor) qs.set('cursor', cursor);
-  if (limit) qs.set('limit', String(limit));
-  return request('GET', `/v3/pusher/leaderboard?${qs}`);
+export function leaderboard({ period, cursor, limit = 50 } = {}) {
+  return request('GET', `/v3/pusher/leaderboard${query({ period, cursor, limit })}`);
+}
+
+export function awards({ cursor, limit = 10 } = {}) {
+  return request('GET', `/v3/pusher/awards${query({ cursor, limit })}`);
 }
 
 export function publicProfile(vrchatUserId) {
@@ -178,7 +203,10 @@ export function describeError(err) {
     blocked: 'This network is blocked. A new token will not help.',
     rate_limited: 'Rate limited. Slowing down.',
     ingest_unavailable: 'avtr.zip is busy. Retrying shortly.',
-    network: 'Could not reach avtr.zip.'
+    network: 'Could not reach avtr.zip.',
+    invalid_period: 'The app asked for a board that does not exist.',
+    not_found: 'That profile is not available.',
+    unavailable: 'avtr.zip is having trouble right now. Showing what we last had.'
   };
   logger.debug('api error', err.status, err.code, err.message);
   return { code: err.code, message: map[err.code] || err.message };

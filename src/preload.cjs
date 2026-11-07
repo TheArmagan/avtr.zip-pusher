@@ -32,6 +32,14 @@ contextBridge.exposeInMainWorld('pusher', {
     signOut: () => call('account:signOut'),
     setLeaderboardOptOut: (value) => call('account:setLeaderboardOptOut', value)
   },
+  stats: {
+    leaderboard: (period, cursor) => call('stats:leaderboard', period, cursor),
+    neighbors: (period) => call('stats:neighbors', period),
+    discoveries: (cursor) => call('stats:discoveries', cursor),
+    awards: (cursor) => call('stats:awards', cursor),
+    profile: (vrchatUserId) => call('stats:profile', vrchatUserId),
+    clearCelebration: () => call('stats:clearCelebration')
+  },
   settings: {
     get: () => call('settings:get'),
     set: (patch) => call('settings:set', patch)
@@ -43,6 +51,7 @@ contextBridge.exposeInMainWorld('pusher', {
   app: {
     getIcon: () => call('app:getIcon'),
     openExternal: (url) => call('app:openExternal', url),
+    openAvatar: (avatarId) => call('app:openAvatar', avatarId),
     openLogFile: () => call('app:openLogFile'),
     checkForUpdates: () => call('app:checkForUpdates'),
     hide: () => call('app:hide'),

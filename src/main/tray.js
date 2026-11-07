@@ -85,7 +85,13 @@ function apply() {
   if (!tray) return;
   const state = getState();
   const who = state.mode === 'linked' ? state.identity?.displayName ?? 'linked' : 'anonymous';
-  tray.setToolTip(`avtr.zip - Pusher (${who})\nSeen avatars: ${seen.size()}`);
+  let line = `Seen avatars: ${seen.size()}`;
+  const id = state.identity;
+  if (state.mode === 'linked' && typeof id?.credit === 'number') {
+    line += `\nDiscoveries: ${id.credit.toLocaleString('en-US')}${id.rank ? ` (#${id.rank})` : ''}`;
+  }
+  // Windows truncates tray tooltips at 127 characters.
+  tray.setToolTip(`avtr.zip - Pusher (${who})\n${line}`.slice(0, 127));
   tray.setContextMenu(buildMenu());
 }
 

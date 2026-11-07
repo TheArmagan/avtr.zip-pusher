@@ -7,12 +7,13 @@ const state = {
   mode: 'anonymous', // 'anonymous' | 'linking' | 'linked'
   encryptionAvailable: true,
   link: null,        // { userCode, verifyUrl, expiresAt, status }
-  identity: null,    // { displayName, vrchatUserId, credit, rank, leaderboardOptOut, tokenId }
+  identity: null,    // { displayName, vrchatUserId, credit, pushCount, rank, leaderboardOptOut, tokenId }
   session: { seen: 0, pushed: 0, new: 0, credited: 0, skipped: 0 },
   quota: null,       // { remaining, maxIds, resetSeconds }
   vrchat: { running: false, lastHeartbeatAt: null, lastLogActivityAt: null },
   activity: [],      // [{ avatarId, state, listed, credited, at }]
-  leaderboard: { items: [], updatedAt: null },
+  stats: null,       // from /me: { ranks, streak, milestones, impact, awards, updatedAt }
+  celebration: null, // { milestone, at } when a badge was just crossed
   update: null,      // { available, latestVersion, url }
   settings: {},
   pending: 0,        // ids buffered and not yet sent

@@ -13,6 +13,11 @@
   --ok: #8fbf7f;
   --warn: #e0b25c;
   --bad: #d08a72;
+  /* The in-world flair colour, so the reward looks the same here as it does there. */
+  --gold: #f5c542;
+  --gold-dim: #7a6224;
+  --silver: #c9c3ba;
+  --bronze: #cf8f5b;
 
   --serif: Fraunces, Georgia, "Times New Roman", serif;
   --sans: Inter, "Segoe UI", system-ui, sans-serif;
@@ -494,3 +499,204 @@ button { font-family: inherit; cursor: pointer; }
 }
 .text-btn:hover { color: var(--text); }
 .text-btn.danger:hover { color: #eda58c; }
+
+/* ---- tabs ---- */
+
+.tabs {
+  display: flex;
+  gap: 2px;
+  padding: 6px 10px 0;
+  border-bottom: 1px solid var(--border-soft);
+}
+.tab {
+  flex: 1;
+  background: none;
+  border: 0;
+  border-bottom: 2px solid transparent;
+  color: var(--muted);
+  font-size: 12px;
+  font-weight: 500;
+  padding: 6px 4px 8px;
+  white-space: nowrap;
+}
+.tab:hover { color: var(--text); }
+.tab.on { color: var(--text); border-bottom-color: var(--accent); }
+
+.note { font-size: 11.5px; color: var(--muted); line-height: 1.45; }
+.flair { color: var(--gold); font-family: var(--mono); font-size: 0.95em; white-space: nowrap; }
+.gold-text { color: var(--gold); }
+
+.banner.gold { border-color: var(--gold-dim); background: #2a2310; color: #f7e3a6; }
+
+/* ---- home additions ---- */
+
+.chips { display: flex; gap: 6px; flex-wrap: wrap; margin-top: 4px; }
+.chip.gold { color: var(--gold); border-color: var(--gold-dim); }
+
+.card.reward {
+  border-color: var(--gold-dim);
+  background: linear-gradient(180deg, #2a2310 0%, var(--surface) 100%);
+}
+.reward-title {
+  font-family: var(--serif);
+  font-variation-settings: "opsz" 32;
+  font-size: 14px;
+  font-weight: 700;
+  margin-bottom: 3px;
+}
+.reward-sub { font-size: 11.5px; color: var(--muted); }
+
+.ranks { padding: 4px 12px; }
+.rank-row {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 9px 0;
+  border-bottom: 1px solid var(--border-soft);
+}
+.rank-row:last-child { border-bottom: 0; }
+.rr-left { flex: 1; min-width: 0; }
+.rr-label {
+  font-size: 10px;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: var(--muted);
+}
+.rr-reset { letter-spacing: 0; text-transform: none; color: var(--faint); margin-left: 6px; }
+.rr-sub { font-size: 11.5px; color: var(--text); margin-top: 1px; }
+.rr-zone { font-size: 11px; color: var(--gold); margin-top: 2px; }
+.rank-row.near-zone .rr-zone { color: var(--accent); }
+.rr-right { flex: none; text-align: right; white-space: nowrap; }
+.rr-rank {
+  font-family: var(--serif);
+  font-variation-settings: "opsz" 48;
+  font-size: 20px;
+  font-weight: 700;
+}
+.rr-of { font-size: 11px; color: var(--muted); }
+.rank-row.zone .rr-rank { color: var(--gold); }
+
+.ms-head { display: flex; justify-content: space-between; font-size: 12px; }
+.ms-pct { font-family: var(--mono); font-size: 11px; color: var(--muted); }
+.bar {
+  height: 5px;
+  background: var(--border);
+  border-radius: 999px;
+  overflow: hidden;
+  margin: 8px 0 10px;
+}
+.bar i { display: block; height: 100%; background: var(--accent); transition: width 400ms ease; }
+.badges { display: flex; gap: 6px; }
+.badge {
+  flex: 1;
+  text-align: center;
+  padding: 3px 0;
+  border-radius: 999px;
+  border: 1px solid var(--border);
+  font-family: var(--mono);
+  font-size: 10px;
+  color: var(--faint);
+}
+.badge.on { color: var(--accent-ink); background: var(--accent); border-color: var(--accent); }
+
+/* ---- boards ---- */
+
+.seg {
+  display: flex;
+  padding: 3px;
+  gap: 3px;
+  border: 1px solid var(--border);
+  border-radius: 999px;
+  background: var(--surface);
+}
+.seg button {
+  flex: 1;
+  height: 26px;
+  border: 0;
+  border-radius: 999px;
+  background: none;
+  color: var(--muted);
+  font-size: 12px;
+  font-weight: 500;
+}
+.seg button:hover { color: var(--text); }
+.seg button.on { background: var(--surface-2); color: var(--text); box-shadow: inset 0 0 0 1px var(--border); }
+.seg.small { flex: none; }
+.seg.small button { height: 22px; padding: 0 10px; font-size: 11px; white-space: nowrap; }
+
+.board-bar { display: flex; align-items: center; gap: 8px; min-height: 30px; }
+.board-note { flex: 1; font-size: 11.5px; color: var(--muted); }
+.reward-note { margin-top: -6px; }
+
+.list-card { padding: 6px; }
+
+.lb-row.tap { cursor: pointer; }
+.lb-row.tap:hover { background: var(--surface-2); }
+.lb-row .nm.anon { color: var(--faint); font-style: italic; }
+.lb-row .you { color: var(--accent); font-size: 10px; font-family: var(--mono); }
+.lb-row.r1 .rank, .lb-row.gold .rank { color: var(--gold); }
+.lb-row.r2 .rank, .lb-row.silver .rank { color: var(--silver); }
+.lb-row.r3 .rank, .lb-row.bronze .rank { color: var(--bronze); }
+
+.profile {
+  margin: 0 8px 6px 40px;
+  padding: 6px 10px;
+  border-left: 2px solid var(--border);
+  font-size: 11.5px;
+  color: var(--muted);
+}
+
+.pinned {
+  position: sticky;
+  bottom: -14px;
+  margin: -6px -14px -14px;
+  padding: 8px 21px 12px;
+  background: linear-gradient(180deg, rgba(23, 17, 13, 0) 0%, var(--bg) 30%);
+}
+.pinned .lb-row { border: 1px solid var(--border); background: var(--surface-2); }
+
+
+/* ---- collected ---- */
+
+.grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; }
+.tile {
+  position: relative;
+  aspect-ratio: 1 / 1;
+  border-radius: 10px;
+  border: 1px solid var(--border);
+  background: var(--surface-2);
+  overflow: hidden;
+  padding: 0;
+  color: var(--text);
+  text-align: left;
+}
+.tile:hover { border-color: var(--accent-dim); }
+.tile img { width: 100%; height: 100%; object-fit: cover; display: block; }
+.tile-cap {
+  position: absolute;
+  inset: auto 0 0 0;
+  display: flex;
+  align-items: flex-end;
+  gap: 4px;
+  padding: 14px 6px 5px;
+  background: linear-gradient(180deg, rgba(0, 0, 0, 0) 0%, rgba(0, 0, 0, 0.78) 100%);
+  font-size: 10.5px;
+}
+.tile.noimg .tile-cap { inset: 0; align-items: center; justify-content: center; background: none; text-align: center; }
+.tile-name { flex: 1; min-width: 0; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.tile.noimg .tile-name { white-space: normal; }
+.tile-likes { flex: none; font-family: var(--mono); font-size: 9.5px; color: var(--accent); }
+.tile.gone {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-style: dashed;
+  background: none;
+}
+.tile-ph { font-size: 10.5px; color: var(--faint); }
+
+/* ---- hall of fame ---- */
+
+#fame-list { display: flex; flex-direction: column; gap: 10px; }
+.fame-week { padding: 10px 6px 6px; }
+.fame-week .label { padding: 0 8px 4px; }

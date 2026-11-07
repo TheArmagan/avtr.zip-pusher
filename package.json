@@ -3,7 +3,7 @@
   "name": "avtr.zip-pusher",
   "main": "src/index.js",
   "license": "GPL-3.0-only",
-  "version": "0.1.0",
+  "version": "0.2.0",
   "dependencies": {
     "chokidar": "^4.0.3",
     "electron-squirrel-startup": "^1.0.1",
